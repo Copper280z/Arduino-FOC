@@ -3,8 +3,8 @@
  * 
  */
 
-#ifndef StepperMotor_h
-#define StepperMotor_h
+#ifndef StepperMotor3ph_h
+#define StepperMotor3ph_h
 
 #include "Arduino.h"
 #include "common/base_classes/BLDCDriver.h"
