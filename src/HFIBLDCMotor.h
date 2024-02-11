@@ -8,6 +8,7 @@
 #include "common/foc_utils.h"
 #include "common/time_utils.h"
 #include "common/defaults.h"
+#include "Kalman.h"
 
 /**
  BLDC motor class
@@ -15,7 +16,8 @@
 class HFIBLDCMotor: public FOCMotor
 {
   public:
-
+    Kalman<1,1,2, float> Kf = Kalman<1,1,2, float>();
+    
     float Ld = 2200e-6f;
     float Lq = 3100e-6f;
 

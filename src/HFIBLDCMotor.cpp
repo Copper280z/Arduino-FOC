@@ -144,6 +144,14 @@ int  HFIBLDCMotor::initFOC() {
     Ts = 1.0f/((float)driver->pwm_frequency);
   #endif
   Ts_L = 2.0f*Ts * ( 1 / Lq - 1 / Ld );
+
+  Kf.F = {1, Ts, 0, 1};
+  Kf.B = {1, 0}; // assuming we give hfi_err/Ts -> which is a velocity
+  Kf.H = {1, 0}; 
+  Kf.Q = {0.005, 0,
+          0,   0.03};
+  Kf.R = {0.8};
+
   motor_status = FOCMotorStatus::motor_calibrating;
 
   // align motor if necessary
@@ -320,8 +328,8 @@ int HFIBLDCMotor::absoluteZeroSearch() {
 }
 
 void HFIBLDCMotor::process_hfi(){
-  // digitalToggle(PC10);
-  // digitalToggle(PC10);
+  digitalToggle(PC10);
+  digitalToggle(PC10);
 
   // if hfi off, handle in normal way
   if (hfi_on == false || enabled==0) {
@@ -377,10 +385,15 @@ void HFIBLDCMotor::process_hfi(){
 
   // hfi_curangleest = delta_current.q / (hfi_v * Ts_L );  // this is about half a us faster than vv
   hfi_curangleest =  0.5f * delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+  // hfi_curangleest =  delta_current.q / (hfi_v * ( 1.0f / Lq - 1.0f / Ld ) );
 
   hfi_error = -hfi_curangleest;
   hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
   hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
+
+  // BLA::Matrix<1> z = {hfi_out};
+  // BLA::Matrix<1> u = {0.0f};
+  // Kf.update(Ts, z, u);
 
   current_err.q = current_setpoint.q - current_meas.q;
   current_err.d = current_setpoint.d - current_meas.d;
@@ -437,11 +450,11 @@ void HFIBLDCMotor::process_hfi(){
   float d_angle = hfi_out - electrical_angle;
   if(abs(d_angle) > (0.8f*_2PI) ) hfi_full_turns += ( d_angle > 0.0f ) ? -1.0f : 1.0f; 
 
-  electrical_angle = hfi_out;
-  // digitalToggle(PC10);
-  // digitalToggle(PC10);  
-  // digitalToggle(PC10);
-  // digitalToggle(PC10);
+  electrical_angle =  hfi_out;
+  digitalToggle(PC10);
+  digitalToggle(PC10);  
+  digitalToggle(PC10);
+  digitalToggle(PC10);
 }
 
 // Iterative function looping FOC algorithm, setting Uq on the Motor
