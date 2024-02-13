@@ -145,12 +145,14 @@ int  HFIBLDCMotor::initFOC() {
   #endif
   Ts_L = 2.0f*Ts * ( 1 / Lq - 1 / Ld );
 
-  Kf.F = {1, Ts, 0, 1};
+  Kf.F = {0, 1, 0, 0};
   Kf.B = {1, 0}; // assuming we give hfi_err/Ts -> which is a velocity
-  Kf.H = {1, 0}; 
-  Kf.Q = {0.005, 0,
-          0,   0.03};
-  Kf.R = {0.8};
+  Kf.H = {1, 0,
+          0, Ts}; 
+  Kf.Q = {0.05, 0,
+          0,   5};
+  Kf.R = {10, 0, 
+          0,   0.1};
 
   motor_status = FOCMotorStatus::motor_calibrating;
 
@@ -384,16 +386,26 @@ void HFIBLDCMotor::process_hfi(){
   delta_current.d = current_high.d - current_low.d;
 
   // hfi_curangleest = delta_current.q / (hfi_v * Ts_L );  // this is about half a us faster than vv
-  hfi_curangleest =  0.5f * delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+  hfi_curangleest =  delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+  if (hfi_curangleest > error_saturation_limit) hfi_curangleest = error_saturation_limit;
+  if (hfi_curangleest < -error_saturation_limit) hfi_curangleest = -error_saturation_limit;
   // hfi_curangleest =  delta_current.q / (hfi_v * ( 1.0f / Lq - 1.0f / Ld ) );
 
   hfi_error = -hfi_curangleest;
   hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
-  hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
+  // LOWPASS(hfi_int,Ts * hfi_error * hfi_gain2, 0.95f);
 
-  // BLA::Matrix<1> z = {hfi_out};
-  // BLA::Matrix<1> u = {0.0f};
-  // Kf.update(Ts, z, u);
+  hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
+  
+  while (hfi_int < -_PI) { hfi_int += _2PI;}
+	while (hfi_int >=  _PI) { hfi_int -= _2PI;}  
+
+  while (hfi_out < 0) { hfi_out += _2PI;}
+	while (hfi_out >=  _2PI) { hfi_out -= _2PI;}  
+
+  BLA::Matrix<2,1> z = {hfi_out,hfi_int};
+  BLA::Matrix<1> u = {0.0f};
+  Kf.update(Ts, z, u);
 
   current_err.q = current_setpoint.q - current_meas.q;
   current_err.d = current_setpoint.d - current_meas.d;
@@ -443,14 +455,17 @@ void HFIBLDCMotor::process_hfi(){
     driver->setPwm(Ua, Ub, Uc);
   #endif
 
-  while (hfi_out < 0) { hfi_out += _2PI;}
-	while (hfi_out >=  _2PI) { hfi_out -= _2PI;}
-  hfi_int = _hfinormalizeAngle(hfi_int);
+  xh0 = Kf.x_hat(0);
+  xh1 = Kf.x_hat(1);
+
+  // hfi_int = _hfinormalizeAngle(hfi_int);
 
   float d_angle = hfi_out - electrical_angle;
   if(abs(d_angle) > (0.8f*_2PI) ) hfi_full_turns += ( d_angle > 0.0f ) ? -1.0f : 1.0f; 
 
-  electrical_angle =  hfi_out;
+  // electrical_angle =  hfi_out;
+  electrical_angle =  Kf.x_hat(0);
+
   digitalToggle(PC10);
   digitalToggle(PC10);  
   digitalToggle(PC10);

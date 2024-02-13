@@ -16,13 +16,13 @@
 class HFIBLDCMotor: public FOCMotor
 {
   public:
-    Kalman<1,1,2, float> Kf = Kalman<1,1,2, float>();
+    Kalman<1,2,2, float> Kf = Kalman<1,2,2, float>();
     
     float Ld = 2200e-6f;
     float Lq = 3100e-6f;
 
-    float hfi_gain1 = 750.0f * _2PI;
-    float hfi_gain2 = 5.0f * _2PI;
+    float hfi_gain1 = 375.0f * _2PI;
+    float hfi_gain2 = 2.5f * _2PI;
 
     bool hfi_firstcycle = true;
     bool hfi_on = false;
@@ -34,6 +34,9 @@ class HFIBLDCMotor: public FOCMotor
     float hfi_int;
     float hfi_out;
     float hfi_full_turns=0;
+    float error_saturation_limit = 0.30f;
+    float xh0 = 0;
+    float xh1 = 0;
 
     float Ts = 1.0f/60000.0f;
     float Ts_L = Ts * ( 1 / Lq - 1 / Ld );

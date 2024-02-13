@@ -13,7 +13,7 @@ class Kalman {
         // Input Matrix
         BLA::Matrix<n_states, n_inputs, T> B;
         // Measurement Matrix
-        BLA::Matrix<n_inputs, n_states, T> H;
+        BLA::Matrix<n_outputs, n_states, T> H;
         // Process Noise
         BLA::Matrix<n_states, n_states, T> Q;
         // Sensor Noise, stdev^2
@@ -73,6 +73,8 @@ class Kalman {
             auto Fd = I+(F*Ts);
             auto Bd = B*Ts;
             xp_hat = Fd*x_hat + Bd*u;
+            while (xp_hat(0) < 0) { xp_hat(0) += _2PI;}
+            while (xp_hat(0) >=  _2PI) { xp_hat(0) -= _2PI;}
             P_hat = Fd*P*(~Fd) + Q;
             S = H*P_hat*(~H) + R;
 
@@ -83,8 +85,14 @@ class Kalman {
             }
             P = KH*P_hat;
             // P = (I-K*H)*P_hat;
-            y = z-(H*x_hat);
+
+            auto predicted_obs = H*x_hat;
+ 
+            y = z-predicted_obs;
+            while (y(0) < -_PI) { y(0) += _2PI;}
+            while (y(0) >=  _PI) { y(0) -= _2PI;}
             x_hat = xp_hat + K*y;
+
             // return x_hat;
         };
 
@@ -112,5 +120,5 @@ class Kalman {
         BLA::Matrix<n_states, n_states, T> I;
         BLA::Matrix<n_states, n_states, T> P;
         BLA::Matrix<n_states, n_states, T> P_hat;
-        BLA::Matrix<n_states, n_inputs, T> K;
+        BLA::Matrix<n_states, n_outputs, T> K;
 };
