@@ -147,13 +147,12 @@ int  HFIBLDCMotor::initFOC() {
 
   Kf.F = {0, 1, 0, 0};
   Kf.B = {1, 0}; // assuming we give hfi_err/Ts -> which is a velocity
-  Kf.H = {1, 0,
-          0, Ts}; 
+  Kf.H = {0, Ts_L}; 
   Kf.Q = {0.05, 0,
-          0,   5};
-  Kf.R = {10, 0, 
           0,   0.1};
-
+  // Kf.R = {10, 0, 
+  //         0,   0.1};
+  Kf.R = {0.01};
   motor_status = FOCMotorStatus::motor_calibrating;
 
   // align motor if necessary
@@ -387,23 +386,21 @@ void HFIBLDCMotor::process_hfi(){
 
   // hfi_curangleest = delta_current.q / (hfi_v * Ts_L );  // this is about half a us faster than vv
   hfi_curangleest =  delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
-  if (hfi_curangleest > error_saturation_limit) hfi_curangleest = error_saturation_limit;
-  if (hfi_curangleest < -error_saturation_limit) hfi_curangleest = -error_saturation_limit;
+  // if (hfi_curangleest > error_saturation_limit) hfi_curangleest = error_saturation_limit;
+  // if (hfi_curangleest < -error_saturation_limit) hfi_curangleest = -error_saturation_limit;
   // hfi_curangleest =  delta_current.q / (hfi_v * ( 1.0f / Lq - 1.0f / Ld ) );
 
-  hfi_error = -hfi_curangleest;
-  hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
-  // LOWPASS(hfi_int,Ts * hfi_error * hfi_gain2, 0.95f);
-
-  hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
+  // hfi_error = -hfi_curangleest;
+  // hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
+  // hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
   
-  while (hfi_int < -_PI) { hfi_int += _2PI;}
-	while (hfi_int >=  _PI) { hfi_int -= _2PI;}  
+  // while (hfi_int < -_PI) { hfi_int += _2PI;}
+	// while (hfi_int >=  _PI) { hfi_int -= _2PI;}  
 
-  while (hfi_out < 0) { hfi_out += _2PI;}
-	while (hfi_out >=  _2PI) { hfi_out -= _2PI;}  
+  // while (hfi_out < 0) { hfi_out += _2PI;}
+	// while (hfi_out >=  _2PI) { hfi_out -= _2PI;}  
 
-  BLA::Matrix<2,1> z = {hfi_out,hfi_int};
+  BLA::Matrix<1,1> z = {hfi_curangleest};
   BLA::Matrix<1> u = {0.0f};
   Kf.update(Ts, z, u);
 

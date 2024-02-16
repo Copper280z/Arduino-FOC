@@ -16,7 +16,7 @@
 class HFIBLDCMotor: public FOCMotor
 {
   public:
-    Kalman<1,2,2, float> Kf = Kalman<1,2,2, float>();
+    Kalman<1,1,2, float> Kf = Kalman<1,1,2, float>();
     
     float Ld = 2200e-6f;
     float Lq = 3100e-6f;
