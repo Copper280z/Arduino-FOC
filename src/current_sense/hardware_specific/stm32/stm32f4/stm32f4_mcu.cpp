@@ -14,6 +14,10 @@
 #define _ADC_VOLTAGE_F4 3.3f
 #define _ADC_RESOLUTION_F4 4096.0f
 
+// extern size_t allocated_adcs;
+// extern ADC_HandleTypeDef hadcs[3];
+// array to track which ADCs have already been used
+// ADC_TypeDef ADCs_in_use[3] = {0,0,0};
 
 // array of values of 4 injected channels per adc instance (3)
 uint32_t adc_val[3][4]={0};
@@ -88,7 +92,7 @@ float _readADCVoltageLowSide(const int pin, const void* cs_params){
 }
 
 #ifdef HFI
-__attribute__((weak)) void process_hfi(){};
+__attribute__((weak)) void process_hfi(int adc_index){};
 #endif
 
 #ifdef SIMPLEFOC_STM32_ADC_INTERRUPT
@@ -97,60 +101,66 @@ extern "C" {
     // digitalToggle(PC10);
     // digitalToggle(PC10);
     // calculate the instance
-    int adc_index = _adcToIndex(AdcHandle);
+    int adc_index;
+    for (int i=0; i<allocated_adcs; i++){
+      adc_index = _adcToIndex(&hadcs[i]);
 
-    // hfi handles this for us
-    #if !defined(HFI) && !defined(HFI_2XPWM)
-    uint32_t adc_cr2 = AdcHandle->Instance->CR2;
-    
-    TIM_TypeDef* timer;
-    switch (adc_cr2 & ADC_CR2_JEXTSEL) {
-      case ADC_EXTERNALTRIGINJECCONV_T1_TRGO:
-        timer = TIM1;
-        break;
-      #ifdef TIM2  // does this ifdef get us anything? Seems all timers are defined in the framework for the specific chip
-      case ADC_EXTERNALTRIGINJECCONV_T2_TRGO:
-        timer = TIM2;
-        break;
-      #endif
-      #ifdef TIM4
-      case ADC_EXTERNALTRIGINJECCONV_T4_TRGO:
-        timer = TIM4;
-        break;
-      #endif
-      #ifdef TIM5
-      case ADC_EXTERNALTRIGINJECCONV_T5_TRGO:
-        timer = TIM5;
-        break;
-      #endif
-    }
+      // hfi handles this for us
+      #if !defined(HFI) && !defined(HFI_2XPWM)
+      uint32_t adc_cr2 = AdcHandle->Instance->CR2;
+      
+      TIM_TypeDef* timer;
+      switch (adc_cr2 & ADC_CR2_JEXTSEL) {
+        case ADC_EXTERNALTRIGINJECCONV_T1_TRGO:
+          timer = TIM1;
+          break;
+        #ifdef TIM2  // does this ifdef get us anything? Seems all timers are defined in the framework for the specific chip
+        case ADC_EXTERNALTRIGINJECCONV_T2_TRGO:
+          timer = TIM2;
+          break;
+        #endif
+        #ifdef TIM4
+        case ADC_EXTERNALTRIGINJECCONV_T4_TRGO:
+          timer = TIM4;
+          break;
+        #endif
+        #ifdef TIM5
+        case ADC_EXTERNALTRIGINJECCONV_T5_TRGO:
+          timer = TIM5;
+          break;
+        #endif
+      }
 
-    bool dir = (timer->CR1 & TIM_CR1_DIR) == TIM_CR1_DIR;
-    if(dir) {
-      digitalToggle(PC10);
-      digitalToggle(PC10);
-      // return;
-    } else {
+      bool dir = (timer->CR1 & TIM_CR1_DIR) == TIM_CR1_DIR;
+      if(dir) {
+        digitalToggle(PC10);
+        digitalToggle(PC10);
+        // return;
+      } else {
+        // digitalToggle(PC10);
+        // digitalToggle(PC10);
+        // digitalToggle(PC10);
+        // digitalToggle(PC10);
+      }
+      #endif
+      // if the timer han't repetition counter - downsample two times
+      // if( needs_downsample[adc_index] && tim_downsample[adc_index]++ > 0) {
+      //   tim_downsample[adc_index] = 0;
+      //   return;
+      // }
       // digitalToggle(PC10);
       // digitalToggle(PC10);
-      // digitalToggle(PC10);
-      // digitalToggle(PC10);
+      adc_val[adc_index][0]=HAL_ADCEx_InjectedGetValue(&hadcs[i], ADC_INJECTED_RANK_1);
+      adc_val[adc_index][1]=HAL_ADCEx_InjectedGetValue(&hadcs[i], ADC_INJECTED_RANK_2);
+      adc_val[adc_index][2]=HAL_ADCEx_InjectedGetValue(&hadcs[i], ADC_INJECTED_RANK_3);    
     }
-    #endif
-    // if the timer han't repetition counter - downsample two times
-    // if( needs_downsample[adc_index] && tim_downsample[adc_index]++ > 0) {
-    //   tim_downsample[adc_index] = 0;
-    //   return;
-    // }
-    // digitalToggle(PC10);
-    // digitalToggle(PC10);
-    adc_val[adc_index][0]=HAL_ADCEx_InjectedGetValue(AdcHandle, ADC_INJECTED_RANK_1);
-    adc_val[adc_index][1]=HAL_ADCEx_InjectedGetValue(AdcHandle, ADC_INJECTED_RANK_2);
-    adc_val[adc_index][2]=HAL_ADCEx_InjectedGetValue(AdcHandle, ADC_INJECTED_RANK_3);    
 
     #ifdef HFI
-      process_hfi();
+      process_hfi(adc_index);
     #endif
+    
+    // digitalToggle(PC10);
+    // digitalToggle(PC10);
   }
 }
 #endif

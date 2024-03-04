@@ -29,6 +29,9 @@ uint32_t _timerToRegularTRGO(HardwareTimer* timer);
 int _adcToIndex(ADC_HandleTypeDef *AdcHandle);
 int _adcToIndex(ADC_TypeDef *AdcHandle);
 
+// workaround for bug in stm32duino
+PinName analog_to_pin(uint32_t pin);
+
 #endif
 
 #endif

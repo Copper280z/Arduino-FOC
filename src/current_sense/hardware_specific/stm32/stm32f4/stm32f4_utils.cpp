@@ -3,6 +3,17 @@
 #if defined(STM32F4xx)
 
 /* Exported Functions */
+
+
+PinName analog_to_pin(uint32_t pin) {
+  PinName pin_name = analogInputToPinName(pin);
+  if (pin_name == NC) {
+    return (PinName) pin;
+  }
+  return pin_name;
+}
+
+
 /**
   * @brief  Return ADC HAL channel linked to a PinName
   * @param  pin: PinName
@@ -129,7 +140,6 @@ uint32_t _getADCChannel(PinName pin)
   }
   return channel;
 }
-
 
 // timer to injected TRGO
 // https://github.com/stm32duino/Arduino_Core_STM32/blob/e156c32db24d69cb4818208ccc28894e2f427cfa/system/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_adc_ex.h#L179
