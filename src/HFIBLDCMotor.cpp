@@ -351,8 +351,8 @@ void HFIBLDCMotor::process_hfi(){
   _sincos(electrical_angle, &_sa, &_ca);
   // _sincos(1.5f, &_sa, &_ca);
 
-  PhaseCurrent_s phase_current = current_sense->getPhaseCurrents();
-  ABCurrent_s ABcurrent = current_sense->getABCurrents(phase_current);
+  phase_current = current_sense->getPhaseCurrents();
+  ABcurrent = current_sense->getABCurrents(phase_current);
   current_meas.d = ABcurrent.alpha * _ca + ABcurrent.beta * _sa;
   current_meas.q = ABcurrent.beta * _ca - ABcurrent.alpha * _sa;
 
