@@ -5,13 +5,6 @@
 extern int** trap_120_map;
 extern int** trap_150_map;
 
-
-static inline float _hfinormalizeAngle(float angle) {
-	while (angle < 0) { angle += _2PI; }
-	while (angle >=  _2PI) { angle -= _2PI; }
-  return angle;
-}
-
 // HFIBLDCMotor( int pp , float R)
 // - pp            - pole pair number
 // - R             - motor phase resistance
@@ -380,8 +373,8 @@ void HFIBLDCMotor::process_hfi(){
   if (hfi_curangleest > error_saturation_limit) hfi_curangleest = error_saturation_limit;
   if (hfi_curangleest < -error_saturation_limit) hfi_curangleest = -error_saturation_limit;
   hfi_error = -hfi_curangleest;
-  hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
-  hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
+  hfi_int += Ts * hfi_error * hfi_gain2; //This is an estimate of the electrical velocity
+  hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the estimate of the actual electrical angle
 
   current_err.q = current_setpoint.q - current_meas.q;
   current_err.d = current_setpoint.d - current_meas.d;
@@ -409,8 +402,8 @@ void HFIBLDCMotor::process_hfi(){
 
   // setPhaseVoltage(voltage.q, voltage.d, electrical_angle);
     // Inverse park transform
-  Ualpha =  _ca * voltage.d - _sa * voltage.q;  // -sin(angle) * Uq;
-  Ubeta =  _sa * voltage.d + _ca * voltage.q;    //  cos(angle) * Uq;
+  Ualpha =  _ca * voltage.d - _sa * voltage.q;
+  Ubeta =  _sa * voltage.d + _ca * voltage.q;
 
   // Clarke transform
   Ua = Ualpha;
