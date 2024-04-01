@@ -433,7 +433,9 @@ void HFIBLDCMotor::process_hfi(){
 
   while (hfi_out < 0) { hfi_out += _2PI;}
 	while (hfi_out >=  _2PI) { hfi_out -= _2PI;}
-  hfi_int = _hfinormalizeAngle(hfi_int);
+  
+  while (hfi_int < -_PI) { hfi_int += _2PI;}
+	while (hfi_int >=  _PI) { hfi_int -= _2PI;}
 
   float d_angle = hfi_out - electrical_angle;
   if(abs(d_angle) > (0.8f*_2PI) ) hfi_full_turns += ( d_angle > 0.0f ) ? -1.0f : 1.0f; 
