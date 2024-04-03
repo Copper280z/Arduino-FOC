@@ -521,8 +521,10 @@ void HFIBLDCMotor::move(float new_target) {
   if (hfi_on==true) {
     noInterrupts();
     float tmp_electrical_angle = electrical_angle;
+    float tmp_hfi_int = hfi_int;
     interrupts();
     shaft_angle = (hfi_full_turns *_2PI + tmp_electrical_angle)/pole_pairs;
+    hfi_velocity = tmp_hfi_int /(Ts*pole_pairs);
   } else {
     if (!sensor){
       shaft_angle = shaftAngle(); // read value even if motor is disabled to keep the monitoring updated but not in openloop mode
