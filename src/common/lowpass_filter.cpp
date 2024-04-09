@@ -19,10 +19,19 @@ float LowPassFilter::operator() (float x)
         timestamp_prev = timestamp;
         return x;
     }
+    timestamp_prev = timestamp;
+    return calc_filter(x,dt);
+}
 
+float LowPassFilter::operator() (float x, float Ts)
+{
+    return calc_filter(x,Ts);
+}
+
+inline float LowPassFilter::calc_filter(float x, float dt)
+{
     float alpha = Tf/(Tf + dt);
     float y = alpha*y_prev + (1.0f - alpha)*x;
     y_prev = y;
-    timestamp_prev = timestamp;
     return y;
 }

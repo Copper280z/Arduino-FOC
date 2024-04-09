@@ -18,9 +18,11 @@ public:
     ~LowPassFilter() = default;
 
     float operator() (float x);
+    float operator() (float x, float Ts);
     float Tf; //!< Low pass filter time constant
 
 protected:
+    float calc_filter(float x, float Ts);
     unsigned long timestamp_prev;  //!< Last execution timestamp
     float y_prev; //!< filtered value in previous execution step 
 };
