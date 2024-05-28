@@ -1,6 +1,6 @@
 #include "stm32l4_utils.h"
 
-#if defined(STM32L4xx)
+#if defined(STM32L4xx) || defined(STM32H5xx)
 
 /* Exported Functions */
 /**

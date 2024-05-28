@@ -1,6 +1,12 @@
+
 #include "stm32l4_hal.h"
 
-#if defined(STM32L4xx)
+
+#if defined(STM32L4xx) || defined(STM32H5xx)
+
+#ifdef STM32H5xx
+  #define ADC1_2_IRQn ADC1_IRQn
+#endif
 
 #include "../../../../communication/SimpleFOCDebug.h"
 

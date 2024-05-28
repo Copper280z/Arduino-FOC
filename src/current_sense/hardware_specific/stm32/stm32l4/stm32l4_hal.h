@@ -3,9 +3,13 @@
 
 #include "Arduino.h"
 
-#if defined(STM32L4xx) 
+#if defined(STM32L4xx) || defined(STM32H5xx)
+#if defined(STM32L4xx)
+    #include "stm32l4xx_hal.h"
+#elif defined(STM32H5xx)
+    #include "stm32h5xx_hal.h"
+#endif
 
-#include "stm32l4xx_hal.h"
 #include "../../../../common/foc_utils.h"
 #include "../../../../drivers/hardware_specific/stm32/stm32_mcu.h"
 #include "../stm32_mcu.h"

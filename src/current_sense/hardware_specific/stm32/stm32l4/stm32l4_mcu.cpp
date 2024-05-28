@@ -1,6 +1,6 @@
 #include "../../../hardware_api.h"
 
-#if defined(STM32L4xx)
+#if defined(STM32L4xx) || defined(STM32H5xx)
 
 #include "../../../../common/foc_utils.h"
 #include "../../../../drivers/hardware_api.h"

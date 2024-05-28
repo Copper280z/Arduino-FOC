@@ -4,7 +4,7 @@
 
 #include "Arduino.h"
 
-#if defined(STM32L4xx) 
+#if defined(STM32L4xx) || defined(STM32H5xx)
 
 #define _TRGO_NOT_AVAILABLE 12345
 
