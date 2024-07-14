@@ -30,7 +30,17 @@ float PIDController::operator() (float error, float Ts) {
 
     return calc_pid(error, Ts);
 }
+
+float PIDController::operator() (float error, float Ts, float Ts_inv) {
+
+    return calc_pid(error, Ts, Ts_inv);
+}
+
 float PIDController::calc_pid (float error, float Ts) {
+    return calc_pid(error, Ts, 1.0f/Ts);
+}
+
+float PIDController::calc_pid (float error, float Ts, float Ts_inv) {
         // u(s) = (P + I/s + Ds)e(s)
     // Discrete implementations
     // proportional part
@@ -44,7 +54,7 @@ float PIDController::calc_pid (float error, float Ts) {
     integral = _constrain(integral, -limit, limit);
     // Discrete derivation
     // u_dk = D(ek - ek_1)/Ts
-    float derivative = D*(error - error_prev)/Ts;
+    float derivative = D*(error - error_prev)*Ts_inv;
 
     // sum all the components
     float output = proportional + integral + derivative;
@@ -54,7 +64,7 @@ float PIDController::calc_pid (float error, float Ts) {
     // if output ramp defined
     if(output_ramp > 0){
         // limit the acceleration by ramping the output
-        float output_rate = (output - output_prev)/Ts;
+        float output_rate = (output - output_prev)*Ts_inv;
         if (output_rate > output_ramp)
             output = output_prev + output_ramp*Ts;
         else if (output_rate < -output_ramp)

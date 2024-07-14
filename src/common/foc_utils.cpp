@@ -4,7 +4,7 @@
 // function approximating the sine calculation by using fixed size array
 // uses a 65 element lookup table and interpolation
 // thanks to @dekutree for his work on optimizing this
-__attribute__((weak)) float _sin(float a){
+__attribute__((weak)) float IRAM_ATTR _sin(float a){
   // 16bit integer array for sine lookup. interpolation is used for better precision
   // 16 bit precision on sine value, 8 bit fractional value for interpolation, 6bit LUT size
   // resulting precision compared to stdlib sine is 0.00006480 (RMS difference in range -PI,PI for 3217 steps)
@@ -32,14 +32,14 @@ __attribute__((weak)) float _sin(float a){
 // ~56us (int array)
 // precision +-0.005
 // it has to receive an angle in between 0 and 2PI
-__attribute__((weak)) float _cos(float a){
+__attribute__((weak)) float IRAM_ATTR _cos(float a){
   float a_sin = a + _PI_2;
   a_sin = a_sin > _2PI ? a_sin - _2PI : a_sin;
   return _sin(a_sin);
 }
 
 
-__attribute__((weak)) void _sincos(float a, float* s, float* c){
+__attribute__((weak)) void IRAM_ATTR _sincos(float a, float* s, float* c){
   *s = _sin(a);
   *c = _cos(a);
 }
@@ -50,7 +50,7 @@ __attribute__((weak)) void _sincos(float a, float* s, float* c){
 // This function is MIT licenced, copyright Oskar Weigl/Odrive Robotics
 // The origin for Odrive atan2 is public domain. Thanks to Odrive for making
 // it easy to borrow.
-__attribute__((weak)) float _atan2(float y, float x) {
+__attribute__((weak)) float IRAM_ATTR _atan2(float y, float x) {
     // a := min (|x|, |y|) / max (|x|, |y|)
     float abs_y = fabsf(y);
     float abs_x = fabsf(x);
@@ -73,20 +73,20 @@ __attribute__((weak)) float _atan2(float y, float x) {
 
 
 // normalizing radian angle to [0,2PI]
-__attribute__((weak)) float _normalizeAngle(float angle){
+__attribute__((weak)) float IRAM_ATTR _normalizeAngle(float angle){
   float a = fmod(angle, _2PI);
   return a >= 0 ? a : (a + _2PI);
 }
 
 // Electrical angle calculation
-float _electricalAngle(float shaft_angle, int pole_pairs) {
+float IRAM_ATTR _electricalAngle(float shaft_angle, int pole_pairs) {
   return (shaft_angle * pole_pairs);
 }
 
 // square root approximation function using
 // https://reprap.org/forum/read.php?147,219210
 // https://en.wikipedia.org/wiki/Fast_inverse_square_root
-__attribute__((weak)) float _sqrtApprox(float number) {//low in fat
+__attribute__((weak)) float IRAM_ATTR _sqrtApprox(float number) {//low in fat
   union {
     float    f;
     uint32_t i;

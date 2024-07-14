@@ -2,11 +2,14 @@
 #include "./communication/SimpleFOCDebug.h"
 #define LOWPASS( output, input, c_lowpass)  (output += (c_lowpass) * ((input) - (output)))
 
+#ifndef SWAP_HILO
+  #define SWAP_HILO true // true for ESP32
+#endif
 extern int** trap_120_map;
 extern int** trap_150_map;
 
 
-static inline float _hfinormalizeAngle(float angle) {
+static inline float IRAM_ATTR _hfinormalizeAngle(float angle) {
 	while (angle < 0) { angle += _2PI; }
 	while (angle >=  _2PI) { angle -= _2PI; }
   return angle;
@@ -137,7 +140,7 @@ void HFIBLDCMotor::enable()
 // FOC initialization function
 int  HFIBLDCMotor::initFOC() {
   int exit_flag = 1;
-  
+
   #ifdef HFI_2XPWM
     Ts = 1.0f/(2.0f*(float)driver->pwm_frequency);
   #else
@@ -319,7 +322,7 @@ int HFIBLDCMotor::absoluteZeroSearch() {
   return !sensor->needsSearch();
 }
 
-void HFIBLDCMotor::process_hfi(){
+void IRAM_ATTR HFIBLDCMotor::process_hfi(){
   // digitalToggle(PC10);
   // digitalToggle(PC10);
 
@@ -363,37 +366,62 @@ void HFIBLDCMotor::process_hfi(){
     hfi_firstcycle=false;
   }
 
-  if (hfi_high) {
-    current_high = current_meas;
-  } else {
-    current_low = current_meas;
-    hfi_v_act = -1.0f*hfi_v;
-  }
+ #if SWAP_HILO == true 
+    if (hfi_high) {
+      current_low = current_meas;
+    } else {
+      current_high = current_meas;
+      hfi_v_act = -1.0f*hfi_v;
+    }
+  #else
+    if (hfi_high) {
+      current_high = current_meas;
+    } else {
+      current_low = current_meas;
+      hfi_v_act = -1.0f*hfi_v;
+    }
+  #endif
 
   hfi_high = !hfi_high;
 
   delta_current.q = current_high.q - current_low.q;
   delta_current.d = current_high.d - current_low.d;
 
+  if (last_hfi_v != hfi_v || last_Ts != Ts || last_Ld != Ld || last_Lq != Lq)
+  {
+    predivAngleest = 1.0f / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+    last_hfi_v = hfi_v;
+    last_Ts = Ts;
+    last_Ld = Ld;
+    last_Lq = Lq;
+    Ts_div = 1.0f / Ts;
+  }
+  
   // hfi_curangleest = delta_current.q / (hfi_v * Ts_L );  // this is about half a us faster than vv
-  hfi_curangleest =  0.5f * delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+  
+  // hfi_curangleest =  0.5f * delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
+  hfi_curangleest =  0.5f * delta_current.q * predivAngleest;
 
+  // LOWPASS(hfi_curangleest, 0.5f * delta_current.q / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) ), 0.34f);
   hfi_error = -hfi_curangleest;
   hfi_int += Ts * hfi_error * hfi_gain2; //This the the double integrator
+  hfi_int = _constrain(hfi_int,-Ts*120.0f, Ts*120.0f);
   hfi_out += hfi_gain1 * Ts * hfi_error + hfi_int; //This is the integrator and the double integrator
 
   current_err.q = current_setpoint.q - current_meas.q;
   current_err.d = current_setpoint.d - current_meas.d;
 
-  voltage_pid.q = PID_current_q(current_err.q, Ts);
-  voltage_pid.d = PID_current_d(current_err.d, Ts);
+  voltage_pid.q = PID_current_q(current_err.q, Ts, Ts_div);
+  voltage_pid.d = PID_current_d(current_err.d, Ts, Ts_div);
 
   // lowpass does a += on the first arg
   LOWPASS(voltage.q,voltage_pid.q, 0.34f);
   LOWPASS(voltage.d,voltage_pid.d, 0.34f);
 
+  voltage.d = _constrain(voltage.d ,-voltage_limit, voltage_limit);
+  voltage.q = _constrain(voltage.q ,-voltage_limit, voltage_limit);
   voltage.d += hfi_v_act;
-
+ 
   // // PMSM decoupling control and BEMF FF
   // stateX->VqFF = stateX->we * ( confX->Ld * stateX->Id_SP + confX->Lambda_m);
   // stateX->VqFF += stateX->Iq_SP * stateX->R ;
@@ -408,6 +436,9 @@ void HFIBLDCMotor::process_hfi(){
 
   // setPhaseVoltage(voltage.q, voltage.d, electrical_angle);
     // Inverse park transform
+
+  
+
   Ualpha =  _ca * voltage.d - _sa * voltage.q;  // -sin(angle) * Uq;
   Ubeta =  _sa * voltage.d + _ca * voltage.q;    //  cos(angle) * Uq;
 
@@ -424,7 +455,7 @@ void HFIBLDCMotor::process_hfi(){
   Ua += center;
   Ub += center;
   Uc += center;
-
+  // Serial.printf(">hfiV:%f\n", Ua);
   #ifdef HFI_2XPWM
     // for hfi at 2x pwm
     driver->setPwm(Ua, Ub, Uc);
@@ -436,7 +467,6 @@ void HFIBLDCMotor::process_hfi(){
 
   float d_angle = hfi_out - electrical_angle;
   if(abs(d_angle) > (0.8f*_2PI) ) hfi_full_turns += ( d_angle > 0.0f ) ? -1.0f : 1.0f; 
-
   electrical_angle = hfi_out;
   // digitalToggle(PC10);
   // digitalToggle(PC10);  
@@ -526,7 +556,11 @@ void HFIBLDCMotor::move(float new_target) {
     noInterrupts();
     float tmp_electrical_angle = electrical_angle;
     interrupts();
-    shaft_angle = (hfi_full_turns *_2PI + tmp_electrical_angle)/pole_pairs;
+    float temp_shaft_angle = (hfi_full_turns *_2PI + tmp_electrical_angle)/pole_pairs;
+    unsigned long currentUpdateTime = _micros();
+    shaft_velocity = LPF_velocity(((temp_shaft_angle - shaft_angle)*1000000.0f/(currentUpdateTime - lastUpdateTime))/1);
+    lastUpdateTime = currentUpdateTime;
+    shaft_angle = temp_shaft_angle;
   } else {
     if (!sensor){
       shaft_angle = shaftAngle(); // read value even if motor is disabled to keep the monitoring updated but not in openloop mode

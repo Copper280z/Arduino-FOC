@@ -101,10 +101,10 @@ int LowsideCurrentSense::driverAlign(float voltage){
     if(skip_align) return exit_flag;
 
     if (!initialized) return 0;
-
+    float center = driver->voltage_limit/2;
     if(_isset(pinA)){
         // set phase A active and phases B and C down
-        driver->setPwm(voltage, 0, 0);
+        driver->setPwm(voltage + center, center, center);
         _delay(2000);
         PhaseCurrent_s c = getPhaseCurrents();
         // read the current 100 times ( arbitrary number )
@@ -151,7 +151,7 @@ int LowsideCurrentSense::driverAlign(float voltage){
 
     if(_isset(pinB)){
         // set phase B active and phases A and C down
-        driver->setPwm(0, voltage, 0);
+        driver->setPwm(center, voltage + center, center);
         _delay(200);
         PhaseCurrent_s c = getPhaseCurrents();
         // read the current 50 times
@@ -198,7 +198,7 @@ int LowsideCurrentSense::driverAlign(float voltage){
     // if phase C measured
     if(_isset(pinC)){
         // set phase C active and phases A and B down
-        driver->setPwm(0, 0, voltage);
+        driver->setPwm(center, center, voltage + center);
         _delay(200);
         PhaseCurrent_s c = getPhaseCurrents();
         // read the adc voltage 500 times ( arbitrary number )

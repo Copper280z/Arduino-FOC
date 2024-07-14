@@ -16,8 +16,8 @@ class HFIBLDCMotor: public FOCMotor
 {
   public:
 
-    float Ld = 2200e-6f;
-    float Lq = 3100e-6f;
+    float Ld = 16e-3f;//2200e-6f;
+    float Lq = 24e-3f;//3100e-6f;
 
     float hfi_gain1 = 750.0f * _2PI;
     float hfi_gain2 = 5.0f * _2PI;
@@ -32,16 +32,24 @@ class HFIBLDCMotor: public FOCMotor
     float hfi_int;
     float hfi_out;
     float hfi_full_turns=0;
+    unsigned long lastUpdateTime = _micros();
 
     float Ts = 1.0f/60000.0f;
     float Ts_L = Ts * ( 1 / Lq - 1 / Ld );
-    float current_bandwidth = 300;
+    float current_bandwidth = 150;
 
     DQCurrent_s current_meas;
     DQCurrent_s current_high;
     DQCurrent_s current_low;
     DQCurrent_s delta_current;
     DQCurrent_s current_setpoint;
+
+    float last_hfi_v = hfi_v;
+    float last_Ts = Ts;
+    float last_Ld = Ld;
+    float last_Lq = Lq;
+    float Ts_div = 1.0f / Ts;
+    float predivAngleest = 1.0f / (hfi_v * Ts * ( 1.0f / Lq - 1.0f / Ld ) );
 
     void process_hfi();
 
