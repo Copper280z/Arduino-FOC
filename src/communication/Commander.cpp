@@ -294,7 +294,7 @@ void Commander::motor(FOCMotor* motor, char* user_command) {
         case SCMD_MEAS_PARAMS:
           printVerbose(F("Meas motor params!"));
           {
-            int res = motor->characteriseMotor(value, 1.5f);
+            int res = motor->characteriseMotor(value, 1.0f);
             if(res == 0){
               println(F("done"));
             } else {
